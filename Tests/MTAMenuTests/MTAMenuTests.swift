@@ -71,6 +71,9 @@ final class GTFSStaticTests: XCTestCase {
     A27,42 St-Port Authority,40.757308,-73.989735,1,
     A27N,42 St-Port Authority,40.757308,-73.989735,,A27
     A27S,42 St-Port Authority,40.757308,-73.989735,,A27
+    A31,14 St,40.740893,-74.00169,1,
+    A31N,14 St,40.740893,-74.00169,,A31
+    A31S,14 St,40.740893,-74.00169,,A31
     """
     static let routes = """
     route_id,agency_id,route_short_name,route_long_name,route_desc,route_type,route_url,route_color,route_text_color,route_sort_order
@@ -91,7 +94,7 @@ final class GTFSStaticTests: XCTestCase {
     }
 
     func testBoardBuilderPicksNearestStationPerLine() {
-        let now = Date()
+        let now = Date(timeIntervalSince1970: Date().timeIntervalSince1970.rounded(.down))
         let updates = [
             RTTripUpdate(tripId: "n1", routeId: "N", stopTimeUpdates: [
                 RTStopTimeUpdate(stopId: "R16N", arrivalTime: Int64(now.timeIntervalSince1970) + 120),
@@ -99,10 +102,11 @@ final class GTFSStaticTests: XCTestCase {
             ]),
             RTTripUpdate(tripId: "a1", routeId: "A", stopTimeUpdates: [
                 RTStopTimeUpdate(stopId: "A27S", arrivalTime: Int64(now.timeIntervalSince1970) + 240),
+                RTStopTimeUpdate(stopId: "A31S", arrivalTime: Int64(now.timeIntervalSince1970) + 600),
             ]),
         ]
         let arrivals = BoardBuilder.arrivals(from: updates, gtfs: gtfs)
-        XCTAssertEqual(arrivals.count, 3)
+        XCTAssertEqual(arrivals.count, 4)
 
         // Standing at Times Square, listening to N and A.
         let origin = Coordinate(latitude: 40.7558, longitude: -73.9862)
@@ -114,6 +118,8 @@ final class GTFSStaticTests: XCTestCase {
         let times = snap.boards.first { $0.station.id == "R16" }!
         XCTAssertEqual(times.northbound.first?.destination, "Astoria-Ditmars Blvd")
         XCTAssertTrue(times.southbound.isEmpty)
+        let portAuthority = snap.boards.first { $0.station.id == "A27" }!
+        XCTAssertEqual(portAuthority.southbound.first?.destination, "14 St")
 
         // Terminating trains are not shown at their last stop.
         let astoria = BoardBuilder.snapshot(arrivals: arrivals, gtfs: gtfs,
@@ -123,7 +129,7 @@ final class GTFSStaticTests: XCTestCase {
     }
 
     func testNearbyRadiusHidesFarLinesButKeepsClosest() {
-        let now = Date()
+        let now = Date(timeIntervalSince1970: Date().timeIntervalSince1970.rounded(.down))
         let updates = [
             RTTripUpdate(tripId: "n1", routeId: "N", stopTimeUpdates: [
                 RTStopTimeUpdate(stopId: "R16N", arrivalTime: Int64(now.timeIntervalSince1970) + 120),
@@ -131,6 +137,7 @@ final class GTFSStaticTests: XCTestCase {
             ]),
             RTTripUpdate(tripId: "a1", routeId: "A", stopTimeUpdates: [
                 RTStopTimeUpdate(stopId: "A27S", arrivalTime: Int64(now.timeIntervalSince1970) + 240),
+                RTStopTimeUpdate(stopId: "A31S", arrivalTime: Int64(now.timeIntervalSince1970) + 600),
             ]),
         ]
         let arrivals = BoardBuilder.arrivals(from: updates, gtfs: gtfs)
