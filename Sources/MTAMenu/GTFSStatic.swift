@@ -92,7 +92,7 @@ final class GTFSStatic {
     static func loadBundled() throws -> GTFSStatic {
         guard let stopsURL = Bundle.module.url(forResource: "stops", withExtension: "txt", subdirectory: "Resources"),
               let routesURL = Bundle.module.url(forResource: "routes", withExtension: "txt", subdirectory: "Resources") else {
-            throw NSError(domain: "SubwayMenuBar", code: 1,
+            throw NSError(domain: "MTAMenu", code: 1,
                           userInfo: [NSLocalizedDescriptionKey: "Bundled GTFS files are missing."])
         }
         return GTFSStatic(stopsCSV: try String(contentsOf: stopsURL, encoding: .utf8),

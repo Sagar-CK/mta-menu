@@ -16,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var snapshot: Snapshot?
     private var isRefreshing = false
     private var lastFailure: String?
+    private var menuOpenSignal: DispatchSourceSignal?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         do {
@@ -39,7 +40,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         timer = Timer.scheduledTimer(withTimeInterval: prefs.refreshInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }
+        installDebugSignal()
         refresh()
+    }
+
+    /// `kill -USR1 $(pgrep -x MTAMenu)` pops the menu open for ~4 s.
+    /// Used by `scripts/product-shot.swift` to take screenshots without
+    /// needing Accessibility permission to synthesize clicks.
+    private func installDebugSignal() {
+        signal(SIGUSR1, SIG_IGN)
+        let source = DispatchSource.makeSignalSource(signal: SIGUSR1, queue: .main)
+        source.setEventHandler { [weak self] in
+            guard let self, let button = self.statusItem.button else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4) { self.menu.cancelTracking() }
+            button.performClick(nil)
+        }
+        source.resume()
+        menuOpenSignal = source
     }
 
     // MARK: - Refresh
@@ -134,7 +151,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         menu.addItem(.separator())
-        let quit = NSMenuItem(title: "Quit Subway Menu Bar", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let quit = NSMenuItem(title: "Quit MTA Menu", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quit)
     }
 

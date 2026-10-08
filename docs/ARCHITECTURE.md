@@ -1,11 +1,11 @@
 # Architecture
 
-Subway Menu Bar is a single Swift Package Manager executable target with no
+MTA Menu is a single Swift Package Manager executable target with no
 third-party dependencies. The code is split into small files, each with one
 job, so the data pipeline can be read top to bottom.
 
 ```
-Sources/SubwayMenuBar/
+Sources/MTAMenu/
 ├── App.swift              Entry point; GUI run loop or --print headless mode
 ├── AppDelegate.swift      Status item, dropdown menu, refresh timer, actions
 ├── Bullets.swift          Draws route bullets; builds attributed strings for UI
@@ -18,8 +18,8 @@ Sources/SubwayMenuBar/
 ├── LocationService.swift  CoreLocation wrapper
 ├── Preferences.swift      UserDefaults-backed settings
 └── Resources/             stops.txt, routes.txt (MTA static GTFS)
-Tests/SubwayMenuBarTests/  XCTest unit tests for the non-UI layers
-scripts/                   build-app.sh (bundle), run.sh (bundle + launch)
+Tests/MTAMenuTests/  XCTest unit tests for the non-UI layers
+scripts/                   build-app.sh (bundle), run.sh (bundle + launch), product-shot.swift (screenshot)
 Info.plist                 Bundle metadata, LSUIElement, location usage strings
 ```
 
@@ -105,7 +105,7 @@ the main actor before touching the UI.
 
 ## Testing
 
-`Tests/SubwayMenuBarTests` covers the pure layers: the protobuf reader, the
+`Tests/MTAMenuTests` covers the pure layers: the protobuf reader, the
 GTFS-RT decoder (with a hand-encoded feed), the CSV/static loader, distance
 formatting, and `BoardBuilder` station selection. UI code is exercised
 manually and via the `--print` headless mode.

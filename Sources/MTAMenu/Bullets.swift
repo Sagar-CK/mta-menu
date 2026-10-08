@@ -60,18 +60,30 @@ enum Bullets {
         return result
     }
 
-    /// A dropdown row: bullet, minutes, and destination.
+    /// A dropdown row: bullet, minutes, and destination, laid out in columns.
+    ///
+    /// Tab stops keep the minutes right-aligned and the destinations in a
+    /// straight column regardless of whether it's "3 min" or "17 min".
     static func menuLine(route: String, minutes: Int, destination: String?, gtfs: GTFSStatic) -> NSAttributedString {
         let font = NSFont.menuFont(ofSize: 0)
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.tabStops = [
+            NSTextTab(textAlignment: .right, location: 74),   // minutes, right-aligned
+            NSTextTab(textAlignment: .left, location: 86),    // destination
+        ]
+        paragraph.lineBreakMode = .byTruncatingTail
+
         let result = NSMutableAttributedString()
         result.append(attachment(for: route, gtfs: gtfs, size: 18, font: font))
         let when = minutes == 0 ? "Now" : "\(minutes) min"
-        result.append(NSAttributedString(string: "  \(when)",
-                                         attributes: [.font: NSFont.menuFont(ofSize: 0).bold, .foregroundColor: NSColor.labelColor]))
+        result.append(NSAttributedString(string: "\t\(when)",
+                                         attributes: [.font: NSFont.monospacedDigitSystemFont(ofSize: font.pointSize, weight: .semibold),
+                                                      .foregroundColor: NSColor.labelColor]))
         if let destination {
-            result.append(NSAttributedString(string: "  →  \(destination)",
+            result.append(NSAttributedString(string: "\t→  \(destination)",
                                              attributes: [.font: font, .foregroundColor: NSColor.secondaryLabelColor]))
         }
+        result.addAttribute(.paragraphStyle, value: paragraph, range: NSRange(location: 0, length: result.length))
         return result
     }
 

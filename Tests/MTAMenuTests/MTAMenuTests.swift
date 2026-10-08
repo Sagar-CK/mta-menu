@@ -1,5 +1,5 @@
 import XCTest
-@testable import SubwayMenuBar
+@testable import MTAMenu
 
 final class ProtobufReaderTests: XCTestCase {
     func testReadsVarintStringAndNestedMessage() throws {
@@ -35,13 +35,20 @@ final class GTFSRealtimeTests: XCTestCase {
     ///               stop_time_update { arrival { time 1000 } stop_id "R16N" }
     ///               stop_time_update { departure { time 2000 } stop_id "R01N" } }
     func testParsesTripUpdate() throws {
-        let trip: [UInt8] = [0x0A, 0x02, 0x74, 0x31, 0x2A, 0x01, 0x4E]            // trip_id, route_id
-        let stu1: [UInt8] = [0x12, 0x03, 0x10, 0xE8, 0x07, 0x22, 0x04] + Array("R16N".utf8)
-        let stu2: [UInt8] = [0x1A, 0x03, 0x10, 0xD0, 0x0F, 0x22, 0x04] + Array("R01N".utf8)
-        let tripUpdate: [UInt8] = [0x0A, UInt8(trip.count)] + trip
-            + [0x12, UInt8(stu1.count)] + stu1 + [0x12, UInt8(stu2.count)] + stu2
-        let entity: [UInt8] = [0x0A, 0x01, 0x31, 0x1A, UInt8(tripUpdate.count)] + tripUpdate
-        let feed: [UInt8] = [0x12, UInt8(entity.count)] + entity
+        /// Wraps `payload` as a length-delimited field with the given tag byte.
+        func field(_ tag: UInt8, _ payload: [UInt8]) -> [UInt8] { [tag, UInt8(payload.count)] + payload }
+
+        let trip: [UInt8] = [0x0A, 0x02, 0x74, 0x31, 0x2A, 0x01, 0x4E]            // trip_id "t1", route_id "N"
+        var stu1: [UInt8] = [0x12, 0x03, 0x10, 0xE8, 0x07, 0x22, 0x04]            // arrival.time 1000, stop_id…
+        stu1 += Array("R16N".utf8)
+        var stu2: [UInt8] = [0x1A, 0x03, 0x10, 0xD0, 0x0F, 0x22, 0x04]            // departure.time 2000, stop_id…
+        stu2 += Array("R01N".utf8)
+        var tripUpdate: [UInt8] = field(0x0A, trip)
+        tripUpdate += field(0x12, stu1)
+        tripUpdate += field(0x12, stu2)
+        var entity: [UInt8] = [0x0A, 0x01, 0x31]                                  // id "1"
+        entity += field(0x1A, tripUpdate)
+        let feed: [UInt8] = field(0x12, entity)
 
         let updates = try GTFSRealtime.parseTripUpdates(Data(feed))
         XCTAssertEqual(updates.count, 1)

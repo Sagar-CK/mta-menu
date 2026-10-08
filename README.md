@@ -1,10 +1,10 @@
-# Subway Menu Bar
+# MTA Menu
 
 A tiny macOS menu bar app for the NYC subway. Pick the lines you care about,
 and it shows the next trains at the nearest station to you, right in the menu
 bar, with proper MTA bullets. Click it to see where each train is headed.
 
-![Menu bar showing a 1 train arriving now](docs/menubar.png)
+![MTA Menu in the macOS menu bar with its dropdown open](docs/mta-menu.png)
 
 - **Lives in the menu bar.** No Dock icon, no window. Just a row of bullets with minutes.
 - **Location-aware.** Uses your Mac's location to find the nearest station for
@@ -24,8 +24,8 @@ bar, with proper MTA bullets. Click it to see where each train is headed.
 ## Quick start
 
 ```bash
-git clone https://github.com/Sagar-CK/subway-menubar.git
-cd subway-menubar
+git clone https://github.com/Sagar-CK/mta-menu.git
+cd mta-menu
 ./scripts/run.sh
 ```
 
@@ -33,8 +33,8 @@ The first launch asks for location access. Allow it, and within a few seconds
 the subway icon turns into live arrivals for the nearest station.
 
 `scripts/run.sh` compiles with Swift Package Manager, wraps the binary in
-`build/SubwayMenuBar.app`, and opens it. To keep it around, drag
-`build/SubwayMenuBar.app` into `/Applications`.
+`build/MTAMenu.app`, and opens it. To keep it around, drag
+`build/MTAMenu.app` into `/Applications`.
 
 ## Using it
 
@@ -77,7 +77,7 @@ Handy when you're not in New York or your Mac has no Wi-Fi positioning.
 
 ## Configuration
 
-Everything is stored in `UserDefaults` under `com.sagarck.SubwayMenuBar`, so
+Everything is stored in `UserDefaults` under `com.sagarck.MTAMenu`, so
 you can also set it from a shell:
 
 | Key | Type | Meaning | Default |
@@ -88,9 +88,9 @@ you can also set it from a shell:
 | `nearbyRadiusMeters` | int (meters) | Hide followed lines with no station this close. `0` = no limit. | 800 |
 
 ```bash
-defaults write com.sagarck.SubwayMenuBar selectedRoutes -array N A
-defaults write com.sagarck.SubwayMenuBar refreshInterval -int 20
-defaults delete com.sagarck.SubwayMenuBar manualLatitude   # back to Mac location
+defaults write com.sagarck.MTAMenu selectedRoutes -array N A
+defaults write com.sagarck.MTAMenu refreshInterval -int 20
+defaults delete com.sagarck.MTAMenu manualLatitude   # back to Mac location
 ```
 
 Restart the app after changing values from the shell.
@@ -101,7 +101,7 @@ You can run the whole pipeline without the GUI, which is useful for checking
 feed parsing or trying a location:
 
 ```bash
-swift run SubwayMenuBar --print --at 40.7580,-73.9855 --lines N,A
+swift run MTAMenu --print --at 40.7580,-73.9855 --lines N,A
 ```
 
 This fetches the feeds once, prints the menu bar entries and the full board for
@@ -129,9 +129,15 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the code layout and
 
 ```bash
 swift build                 # debug build
-swift run SubwayMenuBar --print   # headless check against live feeds
+swift run MTAMenu --print   # headless check against live feeds
 swift test                  # unit tests (needs full Xcode for XCTest)
-./scripts/build-app.sh      # assemble build/SubwayMenuBar.app
+./scripts/build-app.sh      # assemble build/MTAMenu.app
+```
+
+To regenerate the screenshot above (with the app running):
+
+```bash
+swift scripts/product-shot.swift docs/mta-menu.png
 ```
 
 The unit tests use XCTest, which ships with Xcode but not with the standalone
@@ -143,14 +149,14 @@ current GTFS bundle and replace the two files:
 
 ```bash
 curl -L -o /tmp/gtfs_subway.zip https://rrgtfsfeeds.s3.amazonaws.com/gtfs_subway.zip
-unzip -o -j /tmp/gtfs_subway.zip stops.txt routes.txt -d Sources/SubwayMenuBar/Resources/
+unzip -o -j /tmp/gtfs_subway.zip stops.txt routes.txt -d Sources/MTAMenu/Resources/
 ```
 
 ## Troubleshooting
 
 | Symptom | What to do |
 | --- | --- |
-| Only a tram icon, dropdown says "Requesting location access…" | Approve the prompt, or go to System Settings › Privacy & Security › Location Services and enable Subway Menu Bar. Or set a manual location. |
+| Only a tram icon, dropdown says "Requesting location access…" | Approve the prompt, or go to System Settings › Privacy & Security › Location Services and enable MTA Menu. Or set a manual location. |
 | Nearest station is hundreds of miles away | You're outside NYC. Use *Set Location Manually…*. |
 | "Couldn't reach the MTA feeds." | The MTA endpoint is down or you're offline. The app keeps retrying every refresh. |
 | `swift test` fails with "no such module 'XCTest'" | Install Xcode, or rely on CI. `swift build` and `swift run` work without it. |

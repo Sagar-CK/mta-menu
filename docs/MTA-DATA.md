@@ -1,6 +1,6 @@
 # MTA data sources
 
-Subway Menu Bar uses two kinds of MTA open data. Neither requires an API key.
+MTA Menu uses two kinds of MTA open data. Neither requires an API key.
 
 ## Realtime: GTFS-Realtime feeds
 
@@ -50,7 +50,7 @@ https://new.mta.info/developers.
 
 Download: `https://rrgtfsfeeds.s3.amazonaws.com/gtfs_subway.zip`
 
-We ship two files from it in `Sources/SubwayMenuBar/Resources/`:
+We ship two files from it in `Sources/MTAMenu/Resources/`:
 
 **`stops.txt`** (~1,500 rows). Columns used: `stop_id`, `stop_name`,
 `stop_lat`, `stop_lon`, `location_type`, `parent_station`. Rows with

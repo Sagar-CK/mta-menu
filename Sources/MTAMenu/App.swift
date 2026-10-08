@@ -1,15 +1,15 @@
 import AppKit
 
-/// Entry point. SubwayMenuBar is an "accessory" app: it lives in the menu bar and
+/// Entry point. MTAMenu is an "accessory" app: it lives in the menu bar and
 /// has no Dock icon or main window.
 ///
 /// Headless mode for debugging (works with plain `swift run`):
 /// ```
-/// swift run SubwayMenuBar --print --at 40.7580,-73.9855 --lines N,A
+/// swift run MTAMenu --print --at 40.7580,-73.9855 --lines N,A
 /// ```
 /// fetches the feeds once, prints the board for that location, and exits.
 @main
-struct SubwayMenuBarApp {
+struct MTAMenuApp {
     static func main() {
         let args = CommandLine.arguments
         if args.contains("--print") {

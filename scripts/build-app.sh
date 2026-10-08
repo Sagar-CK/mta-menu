@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Builds SubwayMenuBar with Swift Package Manager and wraps the binary in a minimal
-# .app bundle at build/SubwayMenuBar.app. An .app bundle (with Info.plist) is
+# Builds MTAMenu with Swift Package Manager and wraps the binary in a minimal
+# .app bundle at build/MTAMenu.app. An .app bundle (with Info.plist) is
 # required for macOS to show the location permission prompt and to keep the
 # app out of the Dock.
 set -euo pipefail
@@ -10,11 +10,11 @@ CONFIG="${1:-release}"
 swift build -c "$CONFIG"
 
 BIN_DIR="$(swift build -c "$CONFIG" --show-bin-path)"
-APP="build/SubwayMenuBar.app"
+APP="build/MTAMenu.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$BIN_DIR/SubwayMenuBar" "$APP/Contents/MacOS/SubwayMenuBar"
-cp -R "$BIN_DIR/SubwayMenuBar_SubwayMenuBar.bundle" "$APP/Contents/Resources/"
+cp "$BIN_DIR/MTAMenu" "$APP/Contents/MacOS/MTAMenu"
+cp -R "$BIN_DIR/MTAMenu_MTAMenu.bundle" "$APP/Contents/Resources/"
 cp Info.plist "$APP/Contents/Info.plist"
 
 # Ad-hoc signature so TCC (location permission) remembers the decision across launches.

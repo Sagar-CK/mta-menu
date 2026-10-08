@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleIdentifier</key>
-    <string>com.sagarck.SubwayMenuBar</string>
+    <string>com.sagarck.MTAMenu</string>
     <key>CFBundleName</key>
-    <string>SubwayMenuBar</string>
+    <string>MTAMenu</string>
     <key>CFBundleDisplayName</key>
-    <string>Subway Menu Bar</string>
+    <string>MTA Menu</string>
     <key>CFBundleExecutable</key>
-    <string>SubwayMenuBar</string>
+    <string>MTAMenu</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -23,9 +23,9 @@
     <true/>
     <!-- Required for CoreLocation to show the permission prompt. -->
     <key>NSLocationUsageDescription</key>
-    <string>SubwayMenuBar uses your location to find the nearest subway station.</string>
+    <string>MTAMenu uses your location to find the nearest subway station.</string>
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>SubwayMenuBar uses your location to find the nearest subway station.</string>
+    <string>MTAMenu uses your location to find the nearest subway station.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
 </dict>

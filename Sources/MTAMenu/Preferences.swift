@@ -1,14 +1,14 @@
 import Foundation
 
-/// User settings, persisted in `UserDefaults` (domain `com.sagarck.SubwayMenuBar`).
+/// User settings, persisted in `UserDefaults` (domain `com.sagarck.MTAMenu`).
 ///
 /// Everything here can also be set from the shell, which is handy for testing:
 /// ```
-/// defaults write com.sagarck.SubwayMenuBar selectedRoutes -array N A
-/// defaults write com.sagarck.SubwayMenuBar manualLatitude -float 40.758
-/// defaults write com.sagarck.SubwayMenuBar manualLongitude -float -73.9855
-/// defaults write com.sagarck.SubwayMenuBar refreshInterval -int 20
-/// defaults write com.sagarck.SubwayMenuBar nearbyRadiusMeters -int 800
+/// defaults write com.sagarck.MTAMenu selectedRoutes -array N A
+/// defaults write com.sagarck.MTAMenu manualLatitude -float 40.758
+/// defaults write com.sagarck.MTAMenu manualLongitude -float -73.9855
+/// defaults write com.sagarck.MTAMenu refreshInterval -int 20
+/// defaults write com.sagarck.MTAMenu nearbyRadiusMeters -int 800
 /// ```
 final class Preferences {
     static let shared = Preferences()

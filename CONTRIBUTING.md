@@ -5,10 +5,10 @@ Thanks for helping out. This is a small project, so the process is light.
 ## Setting up
 
 ```bash
-git clone https://github.com/Sagar-CK/subway-menubar.git
-cd subway-menubar
+git clone https://github.com/Sagar-CK/mta-menu.git
+cd mta-menu
 swift build
-swift run SubwayMenuBar --print --at 40.7580,-73.9855 --lines N,A
+swift run MTAMenu --print --at 40.7580,-73.9855 --lines N,A
 ./scripts/run.sh
 ```
 
@@ -33,7 +33,7 @@ Open an issue with:
 
 - macOS version and whether you built from source or used a release
 - what the menu bar / dropdown showed
-- output of `swift run SubwayMenuBar --print` (add `--at lat,lon` if location
+- output of `swift run MTAMenu --print` (add `--at lat,lon` if location
   is the problem)
 
 ## Ideas that would be welcome
