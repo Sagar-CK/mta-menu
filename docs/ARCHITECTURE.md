@@ -74,6 +74,12 @@ Instead a station "serves" a line if the live feed has an upcoming train for
 that line there. A side effect is that the app naturally follows reroutes and
 weekend service changes.
 
+**Pinned stops override the search.** A commuter with a fixed route doesn't
+need discovery; they need "23 St for the R/W, 110 St for the 1". When
+`Preferences.pinnedStops` is non-empty, `BoardBuilder` shows exactly those
+stations filtered to their lines, sorted by distance, with the nearby radius
+deciding which are visible right now.
+
 **Each line appears only at its nearest station.** When several followed
 lines share stations (N/Q/R/W along Broadway), the board for a station lists
 only the lines for which that station is the closest one. Otherwise the R/W

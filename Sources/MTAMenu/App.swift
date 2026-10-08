@@ -41,11 +41,13 @@ struct MTAMenuApp {
             defer { semaphore.signal() }
             do {
                 let gtfs = try GTFSStatic.loadBundled()
-                let feeds = MTAFeeds.feeds(for: lines)
+                let pins = Preferences.shared.pinnedStops
+                let feeds = MTAFeeds.feeds(for: pins.isEmpty ? lines : Set(pins.flatMap { $0.routes }))
                 let fetched = await MTAFeeds.fetchTripUpdates(feeds: feeds)
                 let arrivals = BoardBuilder.arrivals(from: fetched.tripUpdates, gtfs: gtfs)
                 let snap = BoardBuilder.snapshot(arrivals: arrivals, gtfs: gtfs, origin: origin,
                                                  selectedRoutes: lines,
+                                                 pinnedStops: Preferences.shared.pinnedStops,
                                                  nearbyRadiusMeters: Preferences.shared.nearbyRadiusMeters,
                                                  errors: fetched.errors)
                 print("Location: \(origin.latitude), \(origin.longitude)   Lines: \(lines.isEmpty ? "all" : lines.sorted().joined(separator: ","))")

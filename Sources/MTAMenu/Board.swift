@@ -67,6 +67,10 @@ enum BoardBuilder {
 
     /// Picks the stations to show and the trains at them.
     ///
+    /// - With pinned stops: exactly those stations, each filtered to its own
+    ///   lines, sorted by distance. The nearby radius still applies (closest
+    ///   always kept), so pinning 23 St (R, W) and 110 St (1) shows 23 St at
+    ///   work and 110 St at home without touching any settings.
     /// - With lines selected: for each selected line, the nearest station it
     ///   currently serves (judged by live arrivals, so it adapts to service
     ///   changes). Stations are merged and sorted by distance, and each line
@@ -86,6 +90,7 @@ enum BoardBuilder {
                          gtfs: GTFSStatic,
                          origin: Coordinate,
                          selectedRoutes: Set<String>,
+                         pinnedStops: [PinnedStop] = [],
                          nearbyRadiusMeters: Double? = nil,
                          now: Date = Date(),
                          errors: [String] = [],
@@ -93,17 +98,21 @@ enum BoardBuilder {
                          perDirection: Int = 4,
                          maxMenuBarEntries: Int = 4) -> Snapshot {
         let cutoff = now.addingTimeInterval(-60)
+        let pinnedById = Dictionary(pinnedStops.map { ($0.stationId, $0) }, uniquingKeysWith: { a, _ in a })
         let usable = arrivals.filter { arrival in
-            arrival.time >= cutoff
-                && arrival.destinationStationId != arrival.stationId
-                && (selectedRoutes.isEmpty || selectedRoutes.contains(arrival.route))
+            guard arrival.time >= cutoff, arrival.destinationStationId != arrival.stationId else { return false }
+            if !pinnedStops.isEmpty {
+                guard let pin = pinnedById[arrival.stationId] else { return false }
+                return pin.routes.isEmpty || pin.routes.contains(arrival.route)
+            }
+            return selectedRoutes.isEmpty || selectedRoutes.contains(arrival.route)
         }
 
         var byStation: [String: [Arrival]] = [:]
         for arrival in usable { byStation[arrival.stationId, default: []].append(arrival) }
 
         var distances: [String: Double] = [:]
-        for stationId in byStation.keys {
+        for stationId in Set(byStation.keys).union(pinnedById.keys) {
             if let station = gtfs.stations[stationId] {
                 distances[stationId] = origin.distance(to: station.coordinate)
             }
@@ -112,7 +121,10 @@ enum BoardBuilder {
         // Choose station IDs, remembering which station "owns" each line.
         var chosen: Set<String> = []
         var nearestStationByRoute: [String: String] = [:]
-        if selectedRoutes.isEmpty {
+        if !pinnedStops.isEmpty {
+            // Pinned stations are shown even with no trains, so an empty board is visible rather than vanishing.
+            chosen = Set(pinnedById.keys.filter { gtfs.stations[$0] != nil })
+        } else if selectedRoutes.isEmpty {
             if let nearest = distances.min(by: { $0.value < $1.value })?.key { chosen.insert(nearest) }
         } else {
             for route in selectedRoutes {
@@ -133,7 +145,7 @@ enum BoardBuilder {
             .compactMap { id -> StationBoard? in
                 guard let station = gtfs.stations[id], let distance = distances[id] else { return nil }
                 let sorted = (byStation[id] ?? [])
-                    .filter { selectedRoutes.isEmpty || nearestStationByRoute[$0.route] == id }
+                    .filter { !pinnedStops.isEmpty || selectedRoutes.isEmpty || nearestStationByRoute[$0.route] == id }
                     .sorted { $0.time < $1.time }
                 return StationBoard(station: station,
                                     distanceMeters: distance,
@@ -141,7 +153,7 @@ enum BoardBuilder {
                                     southbound: Array(sorted.filter { $0.direction == .south }.prefix(perDirection)))
             }
             .sorted { $0.distanceMeters < $1.distanceMeters }
-            .prefix(maxStations)
+            .prefix(pinnedStops.isEmpty ? maxStations : pinnedStops.count)
             .map { $0 }
 
         // Menu bar: soonest train per route across the chosen stations.

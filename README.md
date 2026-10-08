@@ -57,6 +57,24 @@ Times Sq-42 St  ·  0.2 mi
 north is generally uptown / The Bronx / Queens, south is downtown / Brooklyn.
 The destination tells you which branch the train takes.
 
+**Pinned Stops submenu.** The simplest setup for a fixed commute: hardcode
+the stations you use and the lines you care about at each. Pin 23 St (R, W)
+and Cathedral Pkwy-110 St (1), and the app shows 23 St while you're at work
+and 110 St when you're home, because the nearby radius hides the far one.
+Pinned stops replace the nearest-station search entirely. Pin from the menu
+("Pin 23 St (R W)" appears for whatever is on the board) or from the shell:
+
+```bash
+defaults write com.sagarck.MTAMenu pinnedStops -array \
+  '{ station = R19; routes = ( R, W ); }' \
+  '{ station = 118; routes = ( 1 ); }'
+```
+
+Station IDs are the `stop_id` of the parent station in
+`Sources/MTAMenu/Resources/stops.txt` (search by name; several stations share
+a name, so check the line, e.g. `R19` is 23 St on the R/W and `130` is 23 St
+on the 1).
+
 **Lines submenu.** Check the lines you want to follow. The app then shows, for
 each checked line, the closest station that line is currently serving (judged
 from live data, so it adapts to weekend service changes). Each line is listed
@@ -84,6 +102,7 @@ you can also set it from a shell:
 
 | Key | Type | Meaning | Default |
 | --- | --- | --- | --- |
+| `pinnedStops` | array of `{ station = ID; routes = ( … ); }` | Hardcoded stations and their lines. Overrides the line search when set. | empty |
 | `selectedRoutes` | array of strings | Lines to follow, e.g. `N A`. Empty = all lines. | empty |
 | `manualLatitude` / `manualLongitude` | float | Overrides the Mac's location when both are set. | unset |
 | `refreshInterval` | int (seconds, ≥10) | Feed polling interval. | 30 |

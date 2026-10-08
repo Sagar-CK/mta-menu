@@ -9,12 +9,36 @@ import Foundation
 /// defaults write com.sagarck.MTAMenu manualLongitude -float -73.9855
 /// defaults write com.sagarck.MTAMenu refreshInterval -int 20
 /// defaults write com.sagarck.MTAMenu nearbyRadiusMeters -int 800
+/// defaults write com.sagarck.MTAMenu pinnedStops -array '{ station = R19; routes = ( R, W ); }' '{ station = 118; routes = ( 1 ); }'
 /// ```
+/// A station the user always wants to see, with the lines that matter there.
+struct PinnedStop: Equatable {
+    let stationId: String
+    /// Empty means every line serving the station.
+    let routes: Set<String>
+}
+
 final class Preferences {
     static let shared = Preferences()
 
     private let defaults: UserDefaults
     init(defaults: UserDefaults = .standard) { self.defaults = defaults }
+
+    /// Hardcoded stations to show, each with the lines you care about there.
+    /// When any are set they replace the "nearest station per line" search:
+    /// the app shows the pinned stops near you (see `nearbyRadiusMeters`).
+    var pinnedStops: [PinnedStop] {
+        get {
+            (defaults.array(forKey: "pinnedStops") as? [[String: Any]] ?? []).compactMap { dict in
+                guard let station = dict["station"] as? String, !station.isEmpty else { return nil }
+                let routes = (dict["routes"] as? [String] ?? []).map { GTFSStatic.normalizeRoute($0.uppercased()) }
+                return PinnedStop(stationId: station, routes: Set(routes))
+            }
+        }
+        set {
+            defaults.set(newValue.map { ["station": $0.stationId, "routes": Array($0.routes).sorted()] }, forKey: "pinnedStops")
+        }
+    }
 
     /// Lines to listen to. Empty means "all lines".
     var selectedRoutes: Set<String> {

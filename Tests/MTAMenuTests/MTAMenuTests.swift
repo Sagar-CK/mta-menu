@@ -189,6 +189,47 @@ final class GTFSStaticTests: XCTestCase {
         XCTAssertEqual(timesSq.northbound.map(\.route), ["Q"], "N belongs to the closer station only")
     }
 
+    func testPinnedStopsShowOnlyTheirLinesAndRespectRadius() {
+        let now = Date(timeIntervalSince1970: Date().timeIntervalSince1970.rounded(.down))
+        let t = Int64(now.timeIntervalSince1970)
+        let updates = [
+            RTTripUpdate(tripId: "n1", routeId: "N", stopTimeUpdates: [
+                RTStopTimeUpdate(stopId: "R16N", arrivalTime: t + 120),
+                RTStopTimeUpdate(stopId: "R01N", arrivalTime: t + 900),
+            ]),
+            RTTripUpdate(tripId: "q1", routeId: "Q", stopTimeUpdates: [
+                RTStopTimeUpdate(stopId: "R16N", arrivalTime: t + 60),
+                RTStopTimeUpdate(stopId: "R01N", arrivalTime: t + 900),
+            ]),
+            RTTripUpdate(tripId: "a1", routeId: "A", stopTimeUpdates: [
+                RTStopTimeUpdate(stopId: "A27S", arrivalTime: t + 240),
+                RTStopTimeUpdate(stopId: "A31S", arrivalTime: t + 600),
+            ]),
+        ]
+        let arrivals = BoardBuilder.arrivals(from: updates, gtfs: gtfs)
+        let pins = [PinnedStop(stationId: "R16", routes: ["N"]), PinnedStop(stationId: "A31", routes: ["A"])]
+
+        // At Times Sq: the N pin is right here, the 14 St pin is ~1.8 km away and outside the radius.
+        let atTimesSq = BoardBuilder.snapshot(arrivals: arrivals, gtfs: gtfs,
+                                              origin: Coordinate(latitude: 40.754672, longitude: -73.986754),
+                                              selectedRoutes: [], pinnedStops: pins, nearbyRadiusMeters: 400, now: now)
+        XCTAssertEqual(atTimesSq.boards.map(\.station.id), ["R16"])
+        XCTAssertEqual(atTimesSq.boards[0].northbound.map(\.route), ["N"], "Q is not part of the pin")
+        XCTAssertEqual(atTimesSq.menuBar, [MenuBarEntry(route: "N", minutes: 2)])
+
+        // Near 14 St: only the A pin shows (the A31 trip arrives there).
+        let at14St = BoardBuilder.snapshot(arrivals: arrivals, gtfs: gtfs,
+                                           origin: Coordinate(latitude: 40.7409, longitude: -74.0017),
+                                           selectedRoutes: [], pinnedStops: pins, nearbyRadiusMeters: 400, now: now)
+        XCTAssertEqual(at14St.boards.map(\.station.id), ["A31"])
+
+        // No radius: both pins, nearest first.
+        let all = BoardBuilder.snapshot(arrivals: arrivals, gtfs: gtfs,
+                                        origin: Coordinate(latitude: 40.754672, longitude: -73.986754),
+                                        selectedRoutes: [], pinnedStops: pins, nearbyRadiusMeters: nil, now: now)
+        XCTAssertEqual(all.boards.map(\.station.id), ["R16", "A31"])
+    }
+
     func testDistanceFormatting() {
         XCTAssertEqual(formatDistance(meters: 100), "328 ft")
         XCTAssertEqual(formatDistance(meters: 800), "0.5 mi")

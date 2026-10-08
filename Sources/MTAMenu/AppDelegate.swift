@@ -1,5 +1,11 @@
 import AppKit
 
+/// Wraps a `PinnedStop` so it can ride along as an `NSMenuItem.representedObject`.
+private final class PinnedStopBox: NSObject {
+    let value: PinnedStop
+    init(_ value: PinnedStop) { self.value = value }
+}
+
 /// Owns the status item, the dropdown menu, and the refresh loop.
 ///
 /// Data flow: `LocationService` + `Preferences` → `MTAFeeds.fetchTripUpdates`
@@ -68,12 +74,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         isRefreshing = true
         let selected = prefs.selectedRoutes
         let radius = prefs.nearbyRadiusMeters
+        let pinned = prefs.pinnedStops
         Task {
-            let feeds = MTAFeeds.feeds(for: selected)
+            let wanted = pinned.isEmpty ? selected : Set(pinned.flatMap { $0.routes })
+            let feeds = MTAFeeds.feeds(for: wanted)
             let fetched = await MTAFeeds.fetchTripUpdates(feeds: feeds)
             let arrivals = BoardBuilder.arrivals(from: fetched.tripUpdates, gtfs: gtfs)
             let snap = BoardBuilder.snapshot(arrivals: arrivals, gtfs: gtfs, origin: origin,
-                                             selectedRoutes: selected, nearbyRadiusMeters: radius,
+                                             selectedRoutes: selected, pinnedStops: pinned,
+                                             nearbyRadiusMeters: radius,
                                              errors: fetched.errors)
             self.snapshot = snap
             self.lastFailure = fetched.errors.count == feeds.count ? "Couldn't reach the MTA feeds." : nil
@@ -126,6 +135,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             addInfo(isRefreshing ? "Loading arrivals…" : "Waiting for location…")
             menu.addItem(.separator())
         }
+
+        let pinned = NSMenuItem(title: "Pinned Stops", action: nil, keyEquivalent: "")
+        pinned.submenu = buildPinnedMenu()
+        menu.addItem(pinned)
 
         let lines = NSMenuItem(title: "Lines", action: nil, keyEquivalent: "")
         lines.submenu = buildLinesMenu()
@@ -189,6 +202,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.isEnabled = true
             menu.addItem(item)
         }
+    }
+
+    /// Pinned stops: hardcoded station + lines pairs. Shown instead of the
+    /// nearest-station search whenever any exist.
+    private func buildPinnedMenu() -> NSMenu {
+        let submenu = NSMenu()
+        submenu.autoenablesItems = false
+        let pins = prefs.pinnedStops
+
+        if pins.isEmpty {
+            let none = NSMenuItem(title: "No pinned stops. Pin a station below to always use it.", action: nil, keyEquivalent: "")
+            none.isEnabled = false
+            submenu.addItem(none)
+        }
+        for (index, pin) in pins.enumerated() {
+            let name = gtfs.stations[pin.stationId]?.name ?? pin.stationId
+            let lines = pin.routes.isEmpty ? "all lines" : pin.routes.sorted().joined(separator: " ")
+            let item = NSMenuItem(title: "Unpin \(name) (\(lines))", action: #selector(unpinStop(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = index
+            submenu.addItem(item)
+        }
+
+        // Offer to pin whatever is on the board right now, with the lines it shows.
+        if let snapshot, !snapshot.boards.isEmpty {
+            submenu.addItem(.separator())
+            for board in snapshot.boards where !pins.contains(where: { $0.stationId == board.station.id }) {
+                let routes = Set((board.northbound + board.southbound).map(\.route))
+                let item = NSMenuItem(title: "Pin \(board.station.name) (\(routes.sorted().joined(separator: " ")))",
+                                      action: #selector(pinStop(_:)), keyEquivalent: "")
+                item.target = self
+                item.representedObject = PinnedStopBox(PinnedStop(stationId: board.station.id, routes: routes))
+                submenu.addItem(item)
+            }
+        }
+        submenu.addItem(.separator())
+        let hint = NSMenuItem(title: "Pinned stops replace the nearest-station search. The nearby radius still hides far ones.", action: nil, keyEquivalent: "")
+        hint.isEnabled = false
+        submenu.addItem(hint)
+        return submenu
     }
 
     private func buildLinesMenu() -> NSMenu {
@@ -277,6 +330,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         var selected = prefs.selectedRoutes
         if selected.contains(route) { selected.remove(route) } else { selected.insert(route) }
         prefs.selectedRoutes = selected
+        snapshot = nil
+        refresh()
+    }
+
+    @objc private func pinStop(_ sender: NSMenuItem) {
+        guard let box = sender.representedObject as? PinnedStopBox else { return }
+        prefs.pinnedStops = prefs.pinnedStops + [box.value]
+        snapshot = nil
+        refresh()
+    }
+
+    @objc private func unpinStop(_ sender: NSMenuItem) {
+        guard let index = sender.representedObject as? Int else { return }
+        var pins = prefs.pinnedStops
+        guard pins.indices.contains(index) else { return }
+        pins.remove(at: index)
+        prefs.pinnedStops = pins
         snapshot = nil
         refresh()
     }
