@@ -84,7 +84,7 @@ final class GTFSStaticTests: XCTestCase {
     let gtfs = GTFSStatic(stopsCSV: stops, routesCSV: routes)
 
     func testParsesStationsAndRoutes() {
-        XCTAssertEqual(gtfs.stations.count, 3)
+        XCTAssertEqual(gtfs.stations.count, 4)
         XCTAssertEqual(gtfs.station(forStop: "R16S")?.name, "Times Sq-42 St")
         XCTAssertEqual(GTFSStatic.direction(forStop: "R16S"), .south)
         XCTAssertEqual(gtfs.route("N").color, "FCCC0A")
