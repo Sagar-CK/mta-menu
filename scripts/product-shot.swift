@@ -30,28 +30,50 @@ guard let pid = Int32(shell(["pgrep", "-x", appName]).trimmingCharacters(in: .wh
 // 1. Put a clean backdrop behind the menu so the shot doesn't show your desktop.
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
-let screen = NSScreen.main!.frame
-let backdrop = NSWindow(contentRect: screen, styleMask: .borderless, backing: .buffered, defer: false)
+
+/// Finds the app's menu window (CoreGraphics coordinates: origin top-left of the main display).
+func menuRect() -> CGRect? {
+    let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
+    var union: CGRect? = nil
+    for w in windows where (w[kCGWindowOwnerPID as String] as? Int32) == pid {
+        guard let b = w[kCGWindowBounds as String] as? [String: CGFloat] else { continue }
+        let r = CGRect(x: b["X"]!, y: b["Y"]!, width: b["Width"]!, height: b["Height"]!)
+        union = union.map { $0.union(r) } ?? r
+    }
+    return union
+}
+
+/// NSScreen frames use a bottom-left origin; convert to CoreGraphics' top-left origin.
+func cgFrame(of screen: NSScreen) -> CGRect {
+    let mainHeight = NSScreen.screens[0].frame.height
+    let f = screen.frame
+    return CGRect(x: f.minX, y: mainHeight - f.maxY, width: f.width, height: f.height)
+}
+
+// 2. Open the menu once to learn which display it lives on (the menu bar
+//    item sits on whichever display is active), then let it close.
+kill(pid, SIGUSR1)
+RunLoop.main.run(until: Date().addingTimeInterval(1.0))
+guard let probe = menuRect(),
+      let screen = NSScreen.screens.first(where: { cgFrame(of: $0).contains(CGPoint(x: probe.midX, y: probe.midY)) }) else {
+    print("error: couldn't find \(appName)'s menu; is the app running?"); exit(1)
+}
+RunLoop.main.run(until: Date().addingTimeInterval(3.5))
+
+// 3. Put a clean backdrop on that display so the shot doesn't show your desktop.
+let backdrop = NSWindow(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
 backdrop.level = .normal
 backdrop.backgroundColor = NSColor(srgbRed: 0.96, green: 0.96, blue: 0.97, alpha: 1)
 backdrop.orderFrontRegardless()
 RunLoop.main.run(until: Date().addingTimeInterval(0.6))
 
-// 2. Ask the app to open its menu, then give it a moment to render.
+// 4. Open the menu again for the real capture.
 kill(pid, SIGUSR1)
 RunLoop.main.run(until: Date().addingTimeInterval(1.2))
-
-// 3. Find the app's on-screen windows (status item + menu) to compute the capture region.
-let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
-var union: CGRect? = nil
-for w in windows where (w[kCGWindowOwnerPID as String] as? Int32) == pid {
-    guard let b = w[kCGWindowBounds as String] as? [String: CGFloat] else { continue }
-    let r = CGRect(x: b["X"]!, y: b["Y"]!, width: b["Width"]!, height: b["Height"]!)
-    union = union.map { $0.union(r) } ?? r
-}
-guard var region = union else { print("error: couldn't find \(appName)'s menu; is it open?"); exit(1) }
-// Extend up to the top of the screen so the menu bar item itself is included.
-region = CGRect(x: region.minX - 140, y: 0, width: region.width + 280, height: region.maxY + 24)
+guard var region = menuRect() else { print("error: menu did not open"); exit(1) }
+// Extend up to the top of that display so the menu bar item itself is included.
+let top = cgFrame(of: screen).minY
+region = CGRect(x: region.minX - 140, y: top, width: region.width + 280, height: region.maxY - top + 24)
 
 // 4. Capture that region (in points; screencapture produces a Retina PNG).
 let raw = NSTemporaryDirectory() + "mta-menu-raw.png"
@@ -59,7 +81,7 @@ _ = shell(["screencapture", "-x", "-R", "\(Int(region.minX)),\(Int(region.minY))
 Thread.sleep(forTimeInterval: 0.3)
 backdrop.orderOut(nil)
 
-// 5. Composite onto a gradient.
+// 6. Composite onto a gradient.
 guard let shot = NSImage(contentsOfFile: raw), let rep = shot.representations.first else {
     print("error: capture failed"); exit(1)
 }
