@@ -69,7 +69,10 @@ enum BoardBuilder {
     ///
     /// - With lines selected: for each selected line, the nearest station it
     ///   currently serves (judged by live arrivals, so it adapts to service
-    ///   changes). Stations are merged and sorted by distance.
+    ///   changes). Stations are merged and sorted by distance, and each line
+    ///   is listed only at its own nearest station. Following N, Q, R, W near
+    ///   23 St therefore shows R/W at 23 St and N/Q at Union Sq, not R/W at
+    ///   both.
     /// - With no selection ("All lines"): the single nearest station with any
     ///   upcoming train.
     /// - `nearbyRadiusMeters` drops stations farther than that, except the
@@ -106,8 +109,9 @@ enum BoardBuilder {
             }
         }
 
-        // Choose station IDs.
+        // Choose station IDs, remembering which station "owns" each line.
         var chosen: Set<String> = []
+        var nearestStationByRoute: [String: String] = [:]
         if selectedRoutes.isEmpty {
             if let nearest = distances.min(by: { $0.value < $1.value })?.key { chosen.insert(nearest) }
         } else {
@@ -115,6 +119,7 @@ enum BoardBuilder {
                 let candidates = byStation.filter { $0.value.contains { $0.route == route } }.keys
                 if let nearest = candidates.min(by: { (distances[$0] ?? .infinity) < (distances[$1] ?? .infinity) }) {
                     chosen.insert(nearest)
+                    nearestStationByRoute[route] = nearest
                 }
             }
         }
@@ -127,7 +132,9 @@ enum BoardBuilder {
         let boards: [StationBoard] = chosen
             .compactMap { id -> StationBoard? in
                 guard let station = gtfs.stations[id], let distance = distances[id] else { return nil }
-                let sorted = (byStation[id] ?? []).sorted { $0.time < $1.time }
+                let sorted = (byStation[id] ?? [])
+                    .filter { selectedRoutes.isEmpty || nearestStationByRoute[$0.route] == id }
+                    .sorted { $0.time < $1.time }
                 return StationBoard(station: station,
                                     distanceMeters: distance,
                                     northbound: Array(sorted.filter { $0.direction == .north }.prefix(perDirection)),

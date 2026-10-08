@@ -74,6 +74,11 @@ Instead a station "serves" a line if the live feed has an upcoming train for
 that line there. A side effect is that the app naturally follows reroutes and
 weekend service changes.
 
+**Each line appears only at its nearest station.** When several followed
+lines share stations (N/Q/R/W along Broadway), the board for a station lists
+only the lines for which that station is the closest one. Otherwise the R/W
+would show at both 23 St and Union Sq, which is noise when 23 St is closer.
+
 **Nearby radius, with the closest station always kept.** A commuter follows
 the lines for both ends of the trip, but only wants to see the ones near them
 right now. `BoardBuilder.snapshot` drops any chosen station beyond

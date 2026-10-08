@@ -160,6 +160,35 @@ final class GTFSStaticTests: XCTestCase {
         XCTAssertEqual(far.boards.count, 1)
     }
 
+    func testEachLineAppearsOnlyAtItsNearestStation() {
+        let now = Date(timeIntervalSince1970: Date().timeIntervalSince1970.rounded(.down))
+        let t = Int64(now.timeIntervalSince1970)
+        // N stops at both Port Authority (closer) and Times Sq; A only at Port Authority.
+        let updates = [
+            RTTripUpdate(tripId: "n1", routeId: "N", stopTimeUpdates: [
+                RTStopTimeUpdate(stopId: "A27N", arrivalTime: t + 60),
+                RTStopTimeUpdate(stopId: "R16N", arrivalTime: t + 180),
+                RTStopTimeUpdate(stopId: "R01N", arrivalTime: t + 900),
+            ]),
+            RTTripUpdate(tripId: "a1", routeId: "A", stopTimeUpdates: [
+                RTStopTimeUpdate(stopId: "A27S", arrivalTime: t + 240),
+                RTStopTimeUpdate(stopId: "A31S", arrivalTime: t + 600),
+            ]),
+            RTTripUpdate(tripId: "q1", routeId: "Q", stopTimeUpdates: [
+                RTStopTimeUpdate(stopId: "R16N", arrivalTime: t + 300),
+                RTStopTimeUpdate(stopId: "R01N", arrivalTime: t + 900),
+            ]),
+        ]
+        let arrivals = BoardBuilder.arrivals(from: updates, gtfs: gtfs)
+        let origin = Coordinate(latitude: 40.757308, longitude: -73.989735) // at Port Authority
+        let snap = BoardBuilder.snapshot(arrivals: arrivals, gtfs: gtfs, origin: origin,
+                                         selectedRoutes: ["N", "A", "Q"], now: now)
+        let portAuthority = snap.boards.first { $0.station.id == "A27" }!
+        let timesSq = snap.boards.first { $0.station.id == "R16" }!
+        XCTAssertEqual(Set(portAuthority.northbound.map(\.route) + portAuthority.southbound.map(\.route)), ["N", "A"])
+        XCTAssertEqual(timesSq.northbound.map(\.route), ["Q"], "N belongs to the closer station only")
+    }
+
     func testDistanceFormatting() {
         XCTAssertEqual(formatDistance(meters: 100), "328 ft")
         XCTAssertEqual(formatDistance(meters: 800), "0.5 mi")

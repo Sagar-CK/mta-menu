@@ -59,8 +59,10 @@ The destination tells you which branch the train takes.
 
 **Lines submenu.** Check the lines you want to follow. The app then shows, for
 each checked line, the closest station that line is currently serving (judged
-from live data, so it adapts to weekend service changes). With *All Lines*
-selected it simply shows the single nearest station.
+from live data, so it adapts to weekend service changes). Each line is listed
+only at its own nearest station: following N, Q, R, W near 23 St shows the
+R/W at 23 St and the N/Q at Union Sq, without repeating the R/W at Union Sq.
+With *All Lines* selected it simply shows the single nearest station.
 
 **Nearby Radius submenu.** This is what makes a commute set work. Follow
 `1`, `R`, and `W`, and the app shows only the followed lines that have a
